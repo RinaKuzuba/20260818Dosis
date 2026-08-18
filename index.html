@@ -254,8 +254,12 @@
       </div>
       <div class="field" style="margin-bottom:0">
         <label>APIの呼び出し設定</label>
-        <p class="hint" id="stageStat" style="margin:0"></p>
-        <p class="hint">400エラーが出た場合、対応する設定を自動で探して記憶します。</p>
+        <div class="row" style="align-items:center">
+          <p class="hint" id="stageStat" style="margin:0;flex:1"></p>
+          <button class="chip" type="button" id="testBtn">接続テスト</button>
+        </div>
+        <p class="hint">400エラーが出た場合、対応する設定を自動で探して記憶します。うまくいかないときは接続テストで、どの設定が通るかを確認できます（APIを最大4回使います）。</p>
+        <pre id="testOut" class="hint" style="white-space:pre-wrap;margin:8px 0 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7"></pre>
       </div>
     </div>
 
@@ -293,7 +297,7 @@
 <footer class="wrap">
   <p>入力した文章は、翻訳のため Google の Gemini API に送信されます。このサイトはサーバーを持たず、文章もAPIキーも当方には一切送信されません。Googleでの取り扱いは同社のプライバシーポリシーによります。</p>
   <p>APIキー・履歴・設定は、この端末のブラウザ内にのみ保存されます。履歴は「履歴を消す」またはブラウザのデータ削除で消えます。</p>
-  <p>Dosis</p>
+  <p>Dosis <span id="ver">v0.4</span></p>
 </footer>
 
 <script>
@@ -507,12 +511,19 @@ const STAGES = [
   {think:true,  schema:false},   // 2: 思考オフのみ（JSONはプロンプトで指示）
   {think:false, schema:false}    // 3: 素の呼び出し
 ];
-const STAGE_NAME = ['思考オフ＋構造化出力','構造化出力のみ','思考オフのみ','標準設定'];
+const STAGE_NAME = ['思考最小＋構造化出力','構造化出力のみ','思考最小のみ','標準設定'];
 let stage = Number(localStorage.getItem('dosis_stage') || 0);
 
-function genConfig(st){
+/* 思考を最小化する指定は世代で名前が違う。
+   Gemini 3系: thinkingLevel（"minimal"〜"high"、0にはできない）
+   Gemini 2.5系: thinkingBudget（0で完全オフ）
+   モデル名から判定する。判定できなければ両方試すのはコストなので、3系扱いにする。 */
+function thinkCfg(model){
+  return /gemini-2\./.test(model || '') ? {thinkingBudget: 0} : {thinkingLevel: 'minimal'};
+}
+function genConfig(st, model){
   const c = {temperature:0.4};
-  if(STAGES[st].think)  c.thinkingConfig    = {thinkingBudget: 0};
+  if(STAGES[st].think)  c.thinkingConfig    = thinkCfg(model);
   if(STAGES[st].schema){c.responseMimeType  = 'application/json'; c.responseSchema = SCHEMA;}
   return c;
 }
@@ -535,7 +546,7 @@ async function generate(model, prompt){
   for(let st = stage; st < STAGES.length; st++){
     const body = JSON.stringify({
       contents:[{parts:[{text: prompt + (STAGES[st].schema ? '' : JSON_INSTRUCTION)}]}],
-      generationConfig: genConfig(st)
+      generationConfig: genConfig(st, model)
     });
     try{
       const data = await gemini(`models/${model}:generateContent`, {method:'POST', body});
@@ -550,6 +561,34 @@ async function generate(model, prompt){
   throw new Error((lastErr ? lastErr.message : '不明なエラー')
     + '\nすべての設定で失敗しました。設定からモデルを変えて試してください（flash 系を推奨）。');
 }
+$('testBtn').addEventListener('click', async () => {
+  const model = $('model').value;
+  const out = $('testOut');
+  if(!model){ out.textContent = 'モデルが未選択です。'; return; }
+  const btn = $('testBtn'); btn.disabled = true;
+  out.textContent = `モデル: ${model}\n思考パラメータ: ${JSON.stringify(thinkCfg(model))}\n`;
+  const prompt = '次のJSON配列だけを出力してください: [{"i":1,"es":"Hola."}]';
+  let firstOk = -1;
+  for(let st = 0; st < STAGES.length; st++){
+    const t0 = Date.now();
+    try{
+      await gemini(`models/${model}:generateContent`, {method:'POST', body: JSON.stringify({
+        contents:[{parts:[{text: prompt}]}], generationConfig: genConfig(st, model)})});
+      out.textContent += `✓ 段階${st} ${STAGE_NAME[st]} … ${((Date.now()-t0)/1000).toFixed(1)}秒\n`;
+      if(firstOk < 0) firstOk = st;
+    }catch(e){
+      out.textContent += `✗ 段階${st} ${STAGE_NAME[st]} … ${e.message.split('\n')[0]}\n`;
+    }
+  }
+  if(firstOk >= 0){
+    stage = firstOk; localStorage.setItem('dosis_stage', String(firstOk));
+    out.textContent += `→ 段階${firstOk}を使います。`;
+    updateStageStat();
+  }else{
+    out.textContent += '→ すべて失敗。モデルを変えて再テストしてください。';
+  }
+  btn.disabled = false;
+});
 function updateStageStat(){
   const el = $('stageStat');
   if(el) el.textContent = STAGE_NAME[stage] + (stage === 0 ? '' : '（このモデルは一部設定に非対応）');
