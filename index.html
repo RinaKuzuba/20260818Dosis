@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mazelingo — 好きな文章でスペイン語脳になる</title>
+<meta name="description" content="文章を貼ると、一部の文だけがスペイン語に変わる。日本語の文脈が翻訳の代わりをしてくれるから辞書なしで読み切れて、スペイン語に触れる時間が自然と10倍に。スペイン語をスペイン語のまま理解する回路ができます。">
+<style>
+  :root{
+    --bg:#fbfaf7;
+    --ink:#1c1b19;
+    --muted:#6b6862;
+    --line:#e3e0d8;
+    --es:#c8452b;        /* スペイン語ハイライト */
+    --es-soft:#fdeee9;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+    line-height:1.85;font-size:16px;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px}
+
+  header{
+    border-bottom:1px solid var(--line);background:var(--bg);
+    position:sticky;top:0;z-index:10;
+  }
+  header .wrap{display:flex;align-items:center;gap:12px;height:56px}
+  .logo{font-weight:700;letter-spacing:.02em}
+  header nav{margin-left:auto;display:flex;gap:14px;font-size:13px}
+  header nav a,header nav button{
+    color:var(--muted);text-decoration:none;background:none;border:0;
+    font:inherit;font-size:13px;cursor:pointer;padding:4px;
+  }
+  header nav a:hover,header nav button:hover{color:var(--ink)}
+
+  .hero{padding:56px 0 8px}
+  h1{
+    font-size:31px;line-height:1.45;margin:0 0 20px;font-weight:700;
+    letter-spacing:-.01em;
+  }
+  h1 em{font-style:normal;color:var(--es)}
+  .lede{color:var(--muted);margin:0 0 32px}
+
+  .composer{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px;margin-bottom:56px;
+  }
+  .composer label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
+  textarea{
+    width:100%;min-height:150px;resize:vertical;border:1px solid var(--line);
+    border-radius:8px;padding:12px;font:inherit;font-size:15px;line-height:1.8;
+    background:var(--bg);color:var(--ink);
+  }
+  textarea:focus{outline:2px solid var(--es);outline-offset:1px}
+  .counter{text-align:right;font-size:12px;color:var(--muted);margin:6px 2px 14px}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .chip{
+    border:1px solid var(--line);background:var(--bg);border-radius:999px;
+    padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);
+  }
+  .chip:hover{border-color:var(--es);color:var(--es)}
+
+  .ratio{margin-bottom:18px}
+  .ratio-head{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .ratio-head b{color:var(--es);font-size:15px}
+  input[type=range]{width:100%;accent-color:var(--es)}
+  .ratio-note{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .go{
+    width:100%;border:0;border-radius:8px;background:var(--es);color:#fff;
+    padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;
+  }
+  .go:hover{background:#a83722}
+  .go:disabled{background:#cbc8c1;cursor:not-allowed}
+
+  h2{font-size:22px;margin:0 0 12px;font-weight:700;letter-spacing:-.01em}
+  .section{padding-bottom:56px}
+  .section > p{color:var(--muted);margin:0 0 32px}
+
+  .point{border-top:1px solid var(--line);padding:24px 0 0;margin-bottom:24px}
+  .point h3{font-size:16px;margin:0 0 8px;font-weight:700}
+  .point > p{margin:0 0 16px;color:var(--muted);font-size:15px}
+  .sample{
+    background:var(--card);border:1px solid var(--line);border-left:3px solid var(--es);
+    border-radius:0 8px 8px 0;padding:14px 16px;font-size:15px;line-height:1.9;
+  }
+  .sample + .sample{margin-top:8px}
+  .es{color:var(--es);background:var(--es-soft);border-radius:3px;padding:0 2px}
+  .tag{
+    display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--line);
+    border-radius:4px;padding:1px 6px;margin-right:8px;vertical-align:2px;
+  }
+  .arrow{font-size:14px;color:var(--muted);margin:10px 2px 0;padding-left:14px;
+    border-left:2px solid var(--line)}
+
+  .cta{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:24px;margin-bottom:40px;
+  }
+  .cta h2{margin-bottom:8px}
+  .cta p{color:var(--muted);font-size:15px;margin:0 0 18px}
+  .cta a{
+    display:inline-block;background:var(--ink);color:#fff;text-decoration:none;
+    padding:11px 20px;border-radius:8px;font-size:15px;font-weight:700;
+  }
+  footer{border-top:1px solid var(--line);padding:24px 0 40px;font-size:12px;color:var(--muted)}
+  footer p{margin:0 0 6px}
+  @media (max-width:480px){
+    h1{font-size:25px}
+    .hero{padding:36px 0 8px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="logo">Mazelingo</span>
+    <nav>
+      <button type="button" id="historyBtn">🕘 履歴</button>
+      <a href="https://chromewebstore.google.com/detail/mazelingo/bhdngeocokoeblnnlhjibojcadefimpi" target="_blank" rel="noopener">Chrome拡張版 ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>好きな文章で<em>スペイン語脳</em>になる</h1>
+    <p class="lede">
+      文章を貼ると、一部の文だけがスペイン語に変わります。
+      日本語の文脈が翻訳の代わりをしてくれるので、辞書なしで読み切れて、スペイン語に触れる時間が自然と10倍になります。
+      スペイン語の文はクリックすると日本語に戻せます。
+    </p>
+
+    <div class="composer">
+      <label for="src">読みたい文章</label>
+      <textarea id="src" maxlength="10000" placeholder="ニュース、ブログ、日記。日本語の文章なら何でも。"></textarea>
+      <div class="counter"><span id="count">0</span> / 10000</div>
+
+      <div class="presets">
+        <button class="chip" type="button" id="sampleBtn">📄 例文を入れる</button>
+        <button class="chip" type="button" id="newsBtn">📰 記事で試す</button>
+      </div>
+
+      <div class="ratio">
+        <div class="ratio-head">
+          <span>スペイン語の割合</span>
+          <b><span id="ratioVal">15</span>%</b>
+        </div>
+        <input type="range" id="ratio" min="5" max="80" step="5" value="15">
+        <p class="ratio-note">はじめは15%前後がおすすめ。慣れてきたら上げてください。</p>
+      </div>
+
+      <button class="go" type="button" id="mixBtn">ミックスする</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>なぜ、100%スペイン語で読むより伸びるのか</h2>
+    <p>
+      スペイン語は、意味を理解できたときに初めて血となり肉となります。
+      100%スペイン語の文章は、理解できない文がひとつ現れた瞬間に、その文章全体が教材として脱落してしまいます。
+      ミックスなら速く・深く理解できるので、読みこなせるスペイン語の総量はむしろ増えます。その量が力になります。
+    </p>
+
+    <div class="point">
+      <h3>文脈が翻訳の代わりになる。</h3>
+      <p>前後の日本語が「そこに入る意味」をほぼ教えてくれるので、スペイン語の文には意味が分かった状態で出会えます。</p>
+      <div class="sample">
+        朝7時に起きました。<span class="es">Desayuné pan y café.</span> 急いでいたので、それだけで家を出た。
+      </div>
+      <p class="arrow">前後から「朝ご飯を食べました」と予測がつくので、活用を考えなくても Desayuné の意味がその場で分かる。</p>
+    </div>
+
+    <div class="point">
+      <h3>英語の知識がそのまま効く。</h3>
+      <p>スペイン語は英語と語源を共有する単語が非常に多い言語です。英語を学んできた時間が、スペイン語では最初から資産になります。</p>
+      <div class="sample">
+        今週は決算の発表がある。<span class="es">Los resultados se anunciarán el viernes.</span>
+      </div>
+      <p class="arrow">resultados が results、anunciar が announce と重なる。文脈と英語の知識が両側から意味を挟み込む。</p>
+    </div>
+
+    <div class="point">
+      <h3>一文つまずいても、脱落しない。</h3>
+      <p>100%スペイン語では、一度理解が途切れるとその先がまるごと無駄になります。ミックスなら途中の日本語が文脈を返してくれるので、最後まで教材であり続けます。</p>
+      <div class="sample">
+        <span class="es">La nueva política se anunció sin previo aviso.</span> 現場は困惑し、質問が殺到した。<span class="es">Aun así, el calendario no cambió.</span>
+      </div>
+      <p class="arrow">難しい文があっても、途中の日本語で流れを取り戻して最後まで読み切れる。</p>
+    </div>
+
+    <div class="point">
+      <h3>聞き取れなくても分かる耳になる。</h3>
+      <p>日本語の会話は、途中が多少聞き取れなくても理解できます。ミックス読みで鍛えた「文脈で補う力」は、スペイン語のリスニングでもそのまま働きます。</p>
+      <div class="sample">
+        聞こえたのは <span class="es">"la reunión … el viernes … el cliente"</span> だけ。
+      </div>
+      <p class="arrow">それでも「クライアントの都合で会議が金曜になった」と分かる。読むだけでリスニングが伸びるのはこのため。</p>
+    </div>
+
+    <div class="point">
+      <h3>負荷を自分で決められる。</h3>
+      <p>疲れた日はスペイン語を少なめに、多読したい日は多めに。参考書を開かなくても、毎日の読みものが教材になります。</p>
+      <div class="sample">
+        <span class="tag">15%</span>朝は雨だった。傘を忘れて駅まで走った。<span class="es">Fue un mal comienzo del día.</span>
+      </div>
+      <div class="sample">
+        <span class="tag">60%</span><span class="es">Llovía por la mañana.</span> <span class="es">Corrí a la estación sin paraguas.</span> <span class="es">Fue un mal comienzo del día.</span>
+      </div>
+      <p class="arrow">その日の集中力に合わせて、割合をいつでも変えられる。</p>
+    </div>
+  </section>
+
+  <section class="cta">
+    <h2>Chrome拡張版もあります</h2>
+    <p>拡張機能を入れると、いま読んでいるWebページをその場でミックスできます。ニュースもブログも、毎日の読みものがそのまま教材になります。</p>
+    <a href="https://chromewebstore.google.com/detail/mazelingo/bhdngeocokoeblnnlhjibojcadefimpi" target="_blank" rel="noopener">Chromeウェブストアで入手</a>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p>入力された文章は翻訳のためにLLM APIへ送信されます。サーバーには保存しません。</p>
+  <p>© Mazelingo</p>
+</footer>
+
+<script>
+/* ---------- UI ---------- */
+const src=document.getElementById('src');
+const count=document.getElementById('count');
+const ratio=document.getElementById('ratio');
+const ratioVal=document.getElementById('ratioVal');
+const mixBtn=document.getElementById('mixBtn');
+
+src.addEventListener('input',()=>{count.textContent=src.value.length;});
+ratio.addEventListener('input',()=>{ratioVal.textContent=ratio.value;});
+
+document.getElementById('sampleBtn').addEventListener('click',()=>{
+  src.value=`朝7時に起きた。カーテンを開けると、外はまだ薄暗かった。台所で湯を沸かしながら、昨日読みかけの本のことを考えていた。
+コーヒーを淹れて、パンを一枚焼いた。急いでいたので、それだけで家を出た。
+駅までの道で、近所の犬に吠えられた。いつものことだ。
+電車は少し遅れていて、ホームは人であふれていた。それでも、窓際の席に座れた。`;
+  src.dispatchEvent(new Event('input'));
+});
+
+document.getElementById('newsBtn').addEventListener('click',()=>{
+  // TODO: 既存実装の記事取得処理に差し替え
+  alert('記事取得は既存実装に接続してください。');
+});
+
+/* ---------- 翻訳呼び出し（スタブ） ---------- */
+/* 既存サイトのAPI層が未確認のため、ここは接続点だけ用意しています。
+   mixText() の中身を既存の実装に差し替えてください。 */
+async function mixText(text, ratioPercent){
+  const systemPrompt = buildPrompt(ratioPercent);
+  throw new Error('未接続: 既存のLLM API呼び出しをここに実装してください。');
+}
+
+/* ---------- プロンプト（スペイン語版・要検証） ---------- */
+function buildPrompt(ratioPercent){
+  return `あなたは日本語話者向けのスペイン語学習教材を作るアシスタントです。
+与えられた日本語の文章を文単位に分割し、そのうち約${ratioPercent}%の文だけをスペイン語に置き換えてください。
+
+制約:
+- スペイン語はラテンアメリカで標準的な語法を用いる（tú / ustedes を使い、vosotros と voseo は使わない）。
+- 置き換える文は、前後の日本語から意味が推測できるものを優先する。前後の文脈が薄い文（固有名詞の羅列、数字だけの文など）は日本語のまま残す。
+- 英語と語源を共有する語（resultado, política, calendario など）を含む文を優先的に選ぶ。日本語話者は英語の知識でこれらを推測できる。
+- 連続する2文以上を続けてスペイン語にしない。日本語の文脈が途切れるため。
+- 文章の最初の文は日本語のまま残す。話題を先に確定させるため。
+- 原文の意味・語調・敬体/常体の対応を保つ。要約や省略をしない。
+- 出力は本文のみ。説明や前置きを付けない。
+
+出力形式:
+置き換えた文を <es data-ja="元の日本語"> でくくって返す。日本語のままの文はそのまま返す。`;
+}
+
+mixBtn.addEventListener('click',async()=>{
+  if(!src.value.trim())return;
+  mixBtn.disabled=true;
+  mixBtn.textContent='ミックス中…';
+  try{
+    await mixText(src.value, Number(ratio.value));
+  }catch(e){
+    alert(e.message);
+  }finally{
+    mixBtn.disabled=false;
+    mixBtn.textContent='ミックスする';
+  }
+});
+</script>
+</body>
+</html>
