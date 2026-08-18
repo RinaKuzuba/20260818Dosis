@@ -492,6 +492,30 @@ ${list}`;
 const SCHEMA = {type:'ARRAY', items:{type:'OBJECT',
   properties:{i:{type:'INTEGER'}, es:{type:'STRING'}}, required:['i','es']}};
 
+/* 内部推論を切る。この用途では選んで訳すだけなので長い思考は不要で、
+   これが遅さの主因になりやすい。未対応モデルは400を返すので、その場合だけ外して再試行する。 */
+let noThink = localStorage.getItem('dosis_nothink') !== '0';
+function genConfig(){
+  const c = {temperature:0.4, responseMimeType:'application/json', responseSchema:SCHEMA};
+  if(noThink) c.thinkingConfig = {thinkingBudget: 0};
+  return c;
+}
+async function generate(model, prompt){
+  const body = () => JSON.stringify({
+    contents:[{parts:[{text: prompt}]}], generationConfig: genConfig()
+  });
+  try{
+    return await gemini(`models/${model}:generateContent`, {method:'POST', body: body()});
+  }catch(e){
+    if(noThink && /thinking|Unknown name|Invalid JSON payload|not supported/i.test(e.message)){
+      noThink = false;                       // このモデルは非対応。外して一度だけ再試行
+      localStorage.setItem('dosis_nothink','0');
+      return await gemini(`models/${model}:generateContent`, {method:'POST', body: body()});
+    }
+    throw e;
+  }
+}
+
 async function mix(){
   showErr('');
   const raw = $('src').value.trim();
@@ -509,7 +533,7 @@ async function mix(){
   // 足りるならAPIを使わない
   if(cachedIdx.length >= target){
     const chosen = spread(cachedIdx, target);
-    render(tokens, chosen.map(i => ({i, es: cget(sents[i])})), sents.length, 0);
+    render(tokens, chosen.map(i => ({i, es: cget(sents[i])})), sents.length, 0, 0);
     saveHist(raw); csave();
     return;
   }
@@ -518,16 +542,15 @@ async function mix(){
   const model = $('model').value;
   if(!model){ showErr('モデルが未選択です。「設定」から「一覧を取得」してください。'); return; }
 
-  const btn = $('mixBtn'); btn.disabled = true; btn.textContent = '混ぜています…';
+  const btn = $('mixBtn'); btn.disabled = true;
+  const t0 = Date.now();
+  btn.textContent = '混ぜています… 0秒';
+  const tick = setInterval(() => {
+    btn.textContent = `混ぜています… ${Math.floor((Date.now()-t0)/1000)}秒`;
+  }, 200);
   try{
     const banned = [0, ...cachedIdx];
-    const data = await gemini(`models/${model}:generateContent`, {
-      method:'POST',
-      body: JSON.stringify({
-        contents:[{parts:[{text: buildPrompt(sents, need, banned)}]}],
-        generationConfig:{temperature:0.4, responseMimeType:'application/json', responseSchema:SCHEMA}
-      })
-    });
+    const data = await generate(model, buildPrompt(sents, need, banned));
     const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
     if(!text){
       const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason;
@@ -546,22 +569,23 @@ async function mix(){
                 .sort((a,b) => a.i - b.i);
     if(!all.length) throw new Error('翻訳する文が選ばれませんでした。文章を長くして、もう一度試してください。');
     saveHist(raw); csave();
-    render(tokens, all, sents.length, fresh.length);
+    render(tokens, all, sents.length, fresh.length, Date.now() - t0);
   }catch(e){ showErr(e.message); }
-  finally{ btn.disabled = false; btn.textContent = '混ぜる'; }
+  finally{ clearInterval(tick); btn.disabled = false; btn.textContent = '混ぜる'; }
 }
 
 /* ========== 表示 ========== */
-function render(tokens, picks, total, freshCount){
+function render(tokens, picks, total, freshCount, ms){
   const map = new Map(picks.map(p => [p.i, p.es]));
   const out = $('output');
   out.textContent = '';
   const head = document.createElement('div');
   head.className = 'outhead';
   const reused = picks.length - freshCount;
+  const secs = ms ? `${(ms/1000).toFixed(1)}秒／` : '';
   const src = freshCount === 0 ? '保存済みの訳を再利用・API未使用'
-            : reused === 0    ? `${freshCount}文を新規に翻訳`
-            : `${freshCount}文を新規に翻訳・${reused}文は再利用`;
+            : reused === 0    ? `${secs}${freshCount}文を新規に翻訳`
+            : `${secs}${freshCount}文を新規に翻訳・${reused}文は再利用`;
   head.innerHTML = `<span>全${total}文中 ${picks.length}文（濃度 ${Math.round(picks.length/total*100)}%）</span>`
                  + `<span>${src}／クリックで日本語に戻る</span>`;
   out.appendChild(head);
