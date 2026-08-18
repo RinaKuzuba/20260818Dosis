@@ -237,12 +237,20 @@
         </div>
         <p class="hint">無料で使えるモデル名は入れ替わります。flash 系から選んでください。</p>
       </div>
-      <div class="field" style="margin-bottom:0">
+      <div class="field">
         <label for="variety">スペイン語</label>
         <select id="variety">
           <option value="ラテンアメリカで標準的な語法（tú / ustedes を使い、vosotros と voseo は使わない）">ラテンアメリカ標準</option>
           <option value="スペイン本国の語法（vosotros を用いる）">スペイン本国</option>
         </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>訳文キャッシュ</label>
+        <div class="row" style="align-items:center">
+          <span class="hint" id="cacheStat" style="margin:0;flex:1"></span>
+          <button class="chip" type="button" id="clearCache">キャッシュを消す</button>
+        </div>
+        <p class="hint">一度訳した文をこの端末に保存し、濃度を変えて読み直すときに再利用します。API消費を減らすためです。</p>
       </div>
     </div>
 
@@ -286,7 +294,9 @@
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
-const LS = {key:'dosis_key', model:'dosis_model', variety:'dosis_variety', hist:'dosis_hist'};
+const LS = {key:'dosis_key', model:'dosis_model', variety:'dosis_variety',
+            hist:'dosis_hist', cache:'dosis_cache'};
+const CACHE_MAX = 3000;   // 文数の上限。超えたら古い順に捨てる
 
 /* ========== ヒーローの濃度デモ ========== */
 const DEMO = [
@@ -337,6 +347,61 @@ const togglePanel = (btn, panel) => btn.addEventListener('click', () => {
 });
 togglePanel($('setBtn'), $('setPanel'));
 togglePanel($('histBtn'), $('histPanel'));
+
+/* ========== 訳文キャッシュ ==========
+   鍵は「地域設定 + 日本語の文」。モデル名は含めない（モデルを変えても訳は再利用できる）。
+   割り切り：同じ文でも文脈が違えば適切な訳は変わるが、文単位で使い回す。 */
+let CACHE = {};
+try{ CACHE = JSON.parse(localStorage.getItem(LS.cache) || '{}'); }catch{ CACHE = {}; }
+
+const ckey = ja => ($('variety').value.slice(0,6)) + '\u0000' + ja.trim();
+const cget = ja => { const e = CACHE[ckey(ja)]; if(e){ e.u = Date.now(); return e.es; } return null; };
+function cput(ja, es){ CACHE[ckey(ja)] = {es, u: Date.now()}; }
+function csave(){
+  const keys = Object.keys(CACHE);
+  if(keys.length > CACHE_MAX){                       // 古い順に間引く
+    keys.sort((a,b) => CACHE[a].u - CACHE[b].u)
+        .slice(0, keys.length - CACHE_MAX)
+        .forEach(k => delete CACHE[k]);
+  }
+  try{ localStorage.setItem(LS.cache, JSON.stringify(CACHE)); }
+  catch{                                             // 容量超過なら半分捨てて再試行
+    const ks = Object.keys(CACHE).sort((a,b) => CACHE[a].u - CACHE[b].u);
+    ks.slice(0, Math.ceil(ks.length/2)).forEach(k => delete CACHE[k]);
+    try{ localStorage.setItem(LS.cache, JSON.stringify(CACHE)); }catch{}
+  }
+  updateCacheStat();
+}
+function updateCacheStat(){
+  const n = Object.keys(CACHE).length;
+  $('cacheStat').textContent = n ? `${n}文を保存中` : 'まだありません';
+}
+$('clearCache').addEventListener('click', () => {
+  if(confirm('保存した訳文をすべて消します。次回から訳し直しになります。よろしいですか？')){
+    CACHE = {}; localStorage.removeItem(LS.cache); updateCacheStat();
+  }
+});
+$('variety').addEventListener('change', updateCacheStat);
+
+/* 既訳の中から k 文を選ぶ。文書内に均等に散らし、可能な範囲で隣接を避ける
+   （日本語の文脈が途切れないようにするため。k が多いと避けきれない） */
+function spread(arr, k){
+  if(k >= arr.length) return arr.slice();
+  const order = [];
+  for(let j = 0; j < k; j++) order.push(arr[Math.round((j + 0.5) * arr.length / k - 0.5)]);
+  const picked = [];
+  const isAdj = i => picked.some(p => Math.abs(p - i) === 1);
+  for(const i of [...new Set(order)]) if(!picked.includes(i) && !isAdj(i)) picked.push(i);
+  for(const i of arr){                       // 足りなければ隣接も許して埋める
+    if(picked.length >= k) break;
+    if(!picked.includes(i) && !isAdj(i)) picked.push(i);
+  }
+  for(const i of arr){
+    if(picked.length >= k) break;
+    if(!picked.includes(i)) picked.push(i);
+  }
+  return picked.sort((a,b) => a - b).slice(0, k);
+}
 
 /* ========== 文の分割（濃度をクライアント側で確定） ========== */
 function splitSentences(text){
@@ -398,8 +463,11 @@ $('loadModels').addEventListener('click', async () => {
   finally{ btn.disabled = false; btn.textContent = '一覧を取得'; }
 });
 
-function buildPrompt(sents, target){
+function buildPrompt(sents, target, banned){
   const list = sents.map((s,i) => `${i}: ${s}`).join('\n');
+  const banLine = banned.length
+    ? `\n【選んではいけない番号】\n${banned.join(', ')}\nこれらは既に訳出済みです。上記以外から ${target} 文を選んでください。\n`
+    : '';
   return `あなたは日本語話者向けのスペイン語学習教材を作る編集者です。
 
 以下は日本語の文章を文単位に分割し、0から番号を振ったものです。
@@ -411,7 +479,7 @@ function buildPrompt(sents, target){
 3. 番号0の文（最初の文）は選ばない。話題を先に日本語で確定させるため。
 4. 連続する番号を2つ以上続けて選ばない。日本語の文脈が途切れるため。ただし ${target} 文を確保できない場合はこの条件を緩めてよい。
 5. 固有名詞や数字だけの文、意味の薄い短い相槌は選ばない。
-
+${banLine}
 【翻訳の指針】
 - ${$('variety').value}
 - 原文の意味・語調（敬体/常体の対応）を保つ。要約・省略・追記をしない。
@@ -428,20 +496,35 @@ async function mix(){
   showErr('');
   const raw = $('src').value.trim();
   if(!raw){ showErr('文章を入力してください。'); return; }
-  const model = $('model').value;
-  if(!model){ showErr('モデルが未選択です。「設定」から「一覧を取得」してください。'); return; }
 
   const tokens = splitSentences(raw);
   const sents  = tokens.filter(t => !t.br).map(t => t.t);
   const {target} = plan();
   if(!target){ showErr('文が少なすぎます。2文以上の文章を入れてください。'); return; }
 
+  // 既訳を持っている文（先頭の文は対象外）
+  const cachedIdx = [];
+  for(let i = 1; i < sents.length; i++) if(cget(sents[i]) !== null) cachedIdx.push(i);
+
+  // 足りるならAPIを使わない
+  if(cachedIdx.length >= target){
+    const chosen = spread(cachedIdx, target);
+    render(tokens, chosen.map(i => ({i, es: cget(sents[i])})), sents.length, 0);
+    saveHist(raw); csave();
+    return;
+  }
+
+  const need = target - cachedIdx.length;
+  const model = $('model').value;
+  if(!model){ showErr('モデルが未選択です。「設定」から「一覧を取得」してください。'); return; }
+
   const btn = $('mixBtn'); btn.disabled = true; btn.textContent = '混ぜています…';
   try{
+    const banned = [0, ...cachedIdx];
     const data = await gemini(`models/${model}:generateContent`, {
       method:'POST',
       body: JSON.stringify({
-        contents:[{parts:[{text: buildPrompt(sents, target)}]}],
+        contents:[{parts:[{text: buildPrompt(sents, need, banned)}]}],
         generationConfig:{temperature:0.4, responseMimeType:'application/json', responseSchema:SCHEMA}
       })
     });
@@ -450,29 +533,37 @@ async function mix(){
       const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason;
       throw new Error('モデルが応答しませんでした。' + (reason ? `（${reason}）` : ''));
     }
-    let picks = JSON.parse(text);
-    const seen = new Set();
-    picks = picks.filter(p => {
-      const ok = Number.isInteger(p.i) && p.i > 0 && p.i < sents.length && p.es && !seen.has(p.i);
+    const banSet = new Set(banned), seen = new Set();
+    const fresh = JSON.parse(text).filter(p => {
+      const ok = Number.isInteger(p.i) && p.i > 0 && p.i < sents.length
+                 && p.es && !banSet.has(p.i) && !seen.has(p.i);
       if(ok) seen.add(p.i);
       return ok;
     });
-    if(!picks.length) throw new Error('翻訳する文が選ばれませんでした。文章を長くして、もう一度試してください。');
-    saveHist(raw);
-    render(tokens, picks, sents.length);
+    fresh.forEach(p => cput(sents[p.i], p.es));
+
+    const all = [...cachedIdx.map(i => ({i, es: cget(sents[i])})), ...fresh]
+                .sort((a,b) => a.i - b.i);
+    if(!all.length) throw new Error('翻訳する文が選ばれませんでした。文章を長くして、もう一度試してください。');
+    saveHist(raw); csave();
+    render(tokens, all, sents.length, fresh.length);
   }catch(e){ showErr(e.message); }
   finally{ btn.disabled = false; btn.textContent = '混ぜる'; }
 }
 
 /* ========== 表示 ========== */
-function render(tokens, picks, total){
+function render(tokens, picks, total, freshCount){
   const map = new Map(picks.map(p => [p.i, p.es]));
   const out = $('output');
   out.textContent = '';
   const head = document.createElement('div');
   head.className = 'outhead';
+  const reused = picks.length - freshCount;
+  const src = freshCount === 0 ? '保存済みの訳を再利用・API未使用'
+            : reused === 0    ? `${freshCount}文を新規に翻訳`
+            : `${freshCount}文を新規に翻訳・${reused}文は再利用`;
   head.innerHTML = `<span>全${total}文中 ${picks.length}文（濃度 ${Math.round(picks.length/total*100)}%）</span>`
-                 + `<span>クリックで日本語に戻る</span>`;
+                 + `<span>${src}／クリックで日本語に戻る</span>`;
   out.appendChild(head);
 
   let idx = -1;
@@ -544,6 +635,7 @@ $('sampleBtn').addEventListener('click', () => {
 
 if(!$('key').value){ $('setPanel').hidden = false; $('setBtn').setAttribute('aria-expanded','true'); }
 updatePlan();
+updateCacheStat();
 </script>
 </body>
 </html>
