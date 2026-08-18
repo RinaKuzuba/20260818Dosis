@@ -3,126 +3,136 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mazelingo — 好きな文章でスペイン語脳になる</title>
-<meta name="description" content="文章を貼ると、一部の文だけがスペイン語に変わる。日本語の文脈が翻訳の代わりをしてくれるから辞書なしで読み切れて、スペイン語に触れる時間が自然と10倍に。スペイン語をスペイン語のまま理解する回路ができます。">
+<title>Dosis — 読める濃度で、スペイン語を読む</title>
+<meta name="description" content="日本語の文章に、スペイン語を少しだけ混ぜて読む道具。濃度は自分で決められます。辞書を引いて読書が止まる、という問題を濃度で解きます。">
 <style>
   :root{
-    --bg:#fbfaf7;
-    --ink:#1c1b19;
-    --muted:#6b6862;
-    --line:#e3e0d8;
-    --es:#c8452b;        /* スペイン語ハイライト */
-    --es-soft:#fdeee9;
-    --card:#ffffff;
+    --bg:#f6f5f2; --ink:#14161a; --muted:#6f7278; --line:#e0ded7;
+    --ac:#1f5f5b; --ac-soft:#e3efed; --ac-deep:#164743;
+    --card:#fffefb; --warn:#7a6427; --warn-bg:#faf4e4;
+    --serif:"Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
   }
   *{box-sizing:border-box}
-  body{
-    margin:0;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
-    line-height:1.85;font-size:16px;
-  }
-  .wrap{max-width:720px;margin:0 auto;padding:0 20px}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.85;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:680px;margin:0 auto;padding:0 20px}
 
-  header{
-    border-bottom:1px solid var(--line);background:var(--bg);
-    position:sticky;top:0;z-index:10;
-  }
-  header .wrap{display:flex;align-items:center;gap:12px;height:56px}
-  .logo{font-weight:700;letter-spacing:.02em}
-  header nav{margin-left:auto;display:flex;gap:14px;font-size:13px}
-  header nav a,header nav button{
-    color:var(--muted);text-decoration:none;background:none;border:0;
-    font:inherit;font-size:13px;cursor:pointer;padding:4px;
-  }
-  header nav a:hover,header nav button:hover{color:var(--ink)}
+  header{border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
+  header .wrap{display:flex;align-items:center;height:54px}
+  .logo{font-family:var(--serif);font-size:20px;letter-spacing:.06em}
+  .logo small{font-family:var(--sans);font-size:11px;color:var(--muted);letter-spacing:.12em;margin-left:8px}
+  header nav{margin-left:auto;display:flex;gap:4px}
+  header nav button{color:var(--muted);background:none;border:0;font:inherit;font-size:13px;
+    cursor:pointer;padding:6px 9px;border-radius:6px}
+  header nav button:hover{color:var(--ink);background:var(--line)}
 
-  .hero{padding:56px 0 8px}
-  h1{
-    font-size:31px;line-height:1.45;margin:0 0 20px;font-weight:700;
-    letter-spacing:-.01em;
-  }
-  h1 em{font-style:normal;color:var(--es)}
-  .lede{color:var(--muted);margin:0 0 32px}
+  /* ---- ヒーロー：濃度のライブプレビュー ---- */
+  .hero{padding:56px 0 20px}
+  h1{font-family:var(--serif);font-size:34px;line-height:1.5;margin:0 0 18px;
+     font-weight:500;letter-spacing:.01em}
+  .lede{color:var(--muted);font-size:15px;margin:0 0 36px;max-width:34em}
 
-  .composer{
-    background:var(--card);border:1px solid var(--line);border-radius:12px;
-    padding:16px;margin-bottom:56px;
-  }
-  .composer label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
-  textarea{
-    width:100%;min-height:150px;resize:vertical;border:1px solid var(--line);
-    border-radius:8px;padding:12px;font:inherit;font-size:15px;line-height:1.8;
-    background:var(--bg);color:var(--ink);
-  }
-  textarea:focus{outline:2px solid var(--es);outline-offset:1px}
-  .counter{text-align:right;font-size:12px;color:var(--muted);margin:6px 2px 14px}
-  .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-  .chip{
-    border:1px solid var(--line);background:var(--bg);border-radius:999px;
-    padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);
-  }
-  .chip:hover{border-color:var(--es);color:var(--es)}
+  .demo{border:1px solid var(--line);background:var(--card);border-radius:2px;overflow:hidden}
+  .demo-body{padding:26px 24px;font-size:17px;line-height:2.15;min-height:210px;
+    font-family:var(--serif);letter-spacing:.01em}
+  .demo-body .es{font-family:var(--sans);font-size:15.5px;color:var(--ac-deep);
+    background:var(--ac-soft);padding:1px 5px;margin:0 .2em;border-radius:2px;letter-spacing:0}
+  .demo-ctrl{border-top:1px solid var(--line);padding:16px 24px 20px;background:var(--bg)}
+  .demo-ctrl .lbl{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;color:var(--muted);letter-spacing:.06em;margin-bottom:10px}
+  .demo-ctrl .lbl b{font-family:var(--serif);font-size:21px;color:var(--ac);font-weight:500}
+  input[type=range]{width:100%;accent-color:var(--ac);margin:0}
+  .ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+  .demo-cap{font-size:12px;color:var(--muted);margin:12px 2px 0}
 
-  .ratio{margin-bottom:18px}
-  .ratio-head{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
-  .ratio-head b{color:var(--es);font-size:15px}
-  input[type=range]{width:100%;accent-color:var(--es)}
-  .ratio-note{font-size:12px;color:var(--muted);margin-top:6px}
+  /* ---- 本文 ---- */
+  .section{padding:64px 0 0}
+  .eyebrow{font-size:11px;letter-spacing:.2em;color:var(--ac);margin:0 0 10px;font-weight:700}
+  h2{font-family:var(--serif);font-size:25px;line-height:1.55;margin:0 0 20px;font-weight:500}
+  .section p{margin:0 0 20px}
+  .section p.q{color:var(--muted)}
 
-  .go{
-    width:100%;border:0;border-radius:8px;background:var(--es);color:#fff;
-    padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;
-  }
-  .go:hover{background:#a83722}
-  .go:disabled{background:#cbc8c1;cursor:not-allowed}
+  .mech{border-top:1px solid var(--line);padding-top:26px;margin-top:34px}
+  .mech h3{font-family:var(--serif);font-size:18px;margin:0 0 10px;font-weight:500}
+  .mech p{font-size:15px;color:var(--muted);margin:0 0 16px}
+  .ex{background:var(--card);border:1px solid var(--line);border-radius:2px;
+    padding:15px 17px;font-size:15px;line-height:2}
+  .ex + .ex{margin-top:8px}
+  .ex .es{color:var(--ac-deep);background:var(--ac-soft);padding:1px 4px;margin:0 .2em;border-radius:2px}
+  .ex .n{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:2px;
+    padding:1px 6px;margin-right:9px;vertical-align:2px;letter-spacing:.05em}
+  .read{font-size:14px;color:var(--muted);margin:11px 0 0;padding-left:15px;border-left:2px solid var(--ac-soft)}
 
-  h2{font-size:22px;margin:0 0 12px;font-weight:700;letter-spacing:-.01em}
-  .section{padding-bottom:56px}
-  .section > p{color:var(--muted);margin:0 0 32px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:0 0 20px}
+  th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;color:var(--muted);font-weight:400;letter-spacing:.05em}
+  td:first-child{font-family:var(--serif);font-size:17px;color:var(--ac);white-space:nowrap;width:4.5em}
 
-  .point{border-top:1px solid var(--line);padding:24px 0 0;margin-bottom:24px}
-  .point h3{font-size:16px;margin:0 0 8px;font-weight:700}
-  .point > p{margin:0 0 16px;color:var(--muted);font-size:15px}
-  .sample{
-    background:var(--card);border:1px solid var(--line);border-left:3px solid var(--es);
-    border-radius:0 8px 8px 0;padding:14px 16px;font-size:15px;line-height:1.9;
-  }
-  .sample + .sample{margin-top:8px}
-  .es{color:var(--es);background:var(--es-soft);border-radius:3px;padding:0 2px}
-  .tag{
-    display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--line);
-    border-radius:4px;padding:1px 6px;margin-right:8px;vertical-align:2px;
-  }
-  .arrow{font-size:14px;color:var(--muted);margin:10px 2px 0;padding-left:14px;
-    border-left:2px solid var(--line)}
+  /* ---- ツール ---- */
+  .tool{padding:64px 0 0}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:2px;padding:18px}
+  .panel[hidden]{display:none}
+  .panel h3{font-size:14px;margin:0 0 14px;letter-spacing:.04em}
+  .field{margin-bottom:15px}
+  .field > label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:.04em}
+  input[type=password],input[type=text],select,textarea{
+    width:100%;border:1px solid var(--line);border-radius:2px;padding:10px 12px;
+    font:inherit;font-size:15px;background:var(--bg);color:var(--ink)}
+  textarea{min-height:160px;resize:vertical;line-height:1.85}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--ac);outline-offset:1px}
+  .hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+  .hint a{color:var(--ac)}
+  .row{display:flex;gap:8px}.row > select{flex:1}
+  .counter{text-align:right;font-size:12px;color:var(--muted);margin:6px 2px 0}
+  .chip{border:1px solid var(--line);background:var(--bg);border-radius:2px;
+    padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .chip:hover{border-color:var(--ac);color:var(--ac)}
+  .go{width:100%;border:0;border-radius:2px;background:var(--ac);color:#fff;padding:15px;
+    font:inherit;font-weight:700;font-size:16px;letter-spacing:.05em;cursor:pointer;margin-top:8px}
+  .go:hover{background:var(--ac-deep)}
+  .go:disabled{background:#b9b7b0;cursor:not-allowed}
 
-  .cta{
-    background:var(--card);border:1px solid var(--line);border-radius:12px;
-    padding:24px;margin-bottom:40px;
-  }
-  .cta h2{margin-bottom:8px}
-  .cta p{color:var(--muted);font-size:15px;margin:0 0 18px}
-  .cta a{
-    display:inline-block;background:var(--ink);color:#fff;text-decoration:none;
-    padding:11px 20px;border-radius:8px;font-size:15px;font-weight:700;
-  }
-  footer{border-top:1px solid var(--line);padding:24px 0 40px;font-size:12px;color:var(--muted)}
+  .notice{background:var(--warn-bg);border:1px solid #e9dcb4;color:var(--warn);
+    border-radius:2px;padding:11px 13px;font-size:13px;line-height:1.75;margin-bottom:16px}
+  .error{background:#fbeae6;border:1px solid #edc7bb;color:#8c2f1c;border-radius:2px;
+    padding:11px 13px;font-size:14px;margin:16px 0 0}
+  .error[hidden]{display:none}
+
+  #output{background:var(--card);border:1px solid var(--line);border-radius:2px;
+    padding:24px;font-family:var(--serif);font-size:17.5px;line-height:2.2;
+    margin-top:20px;white-space:pre-wrap}
+  #output[hidden]{display:none}
+  #output .es{font-family:var(--sans);font-size:16px;color:var(--ac-deep);background:var(--ac-soft);
+    padding:1px 5px;margin:0 .2em;border-radius:2px;cursor:pointer;letter-spacing:0}
+  #output .es:hover{background:#d2e6e3}
+  #output .es.revealed{font-family:var(--serif);font-size:17.5px;color:var(--ink);
+    background:transparent;border-bottom:1px dashed var(--line)}
+  .outhead{display:flex;justify-content:space-between;font-family:var(--sans);font-size:11.5px;
+    color:var(--muted);letter-spacing:.05em;margin-bottom:16px;padding-bottom:12px;
+    border-bottom:1px solid var(--line);white-space:normal}
+
+  .hist-item{border-top:1px solid var(--line);padding:11px 0;font-size:14px;cursor:pointer}
+  .hist-item:hover{color:var(--ac)}
+  .hist-item time{display:block;font-size:11px;color:var(--muted)}
+
+  footer{border-top:1px solid var(--line);margin-top:72px;padding:24px 0 48px;
+    font-size:12px;color:var(--muted);line-height:1.9}
   footer p{margin:0 0 6px}
-  @media (max-width:480px){
-    h1{font-size:25px}
-    .hero{padding:36px 0 8px}
+  @media (max-width:520px){
+    h1{font-size:26px}h2{font-size:21px}.hero{padding:36px 0 16px}
+    .demo-body{padding:20px 17px;font-size:16px}#output{font-size:16.5px;padding:18px}
   }
-  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 
 <header>
   <div class="wrap">
-    <span class="logo">Mazelingo</span>
+    <span class="logo">Dosis<small>ESPAÑOL</small></span>
     <nav>
-      <button type="button" id="historyBtn">🕘 履歴</button>
-      <a href="https://chromewebstore.google.com/detail/mazelingo/bhdngeocokoeblnnlhjibojcadefimpi" target="_blank" rel="noopener">Chrome拡張版 ↗</a>
+      <button type="button" id="histBtn" aria-expanded="false">履歴</button>
+      <button type="button" id="setBtn" aria-expanded="false">設定</button>
     </nav>
   </div>
 </header>
@@ -130,169 +140,410 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1>好きな文章で<em>スペイン語脳</em>になる</h1>
-    <p class="lede">
-      文章を貼ると、一部の文だけがスペイン語に変わります。
-      日本語の文脈が翻訳の代わりをしてくれるので、辞書なしで読み切れて、スペイン語に触れる時間が自然と10倍になります。
-      スペイン語の文はクリックすると日本語に戻せます。
-    </p>
+    <h1>読める濃度で、<br>スペイン語を読む。</h1>
+    <p class="lede">日本語の文章に、スペイン語を少しだけ混ぜます。濃度はあなたが決めます。下のつまみを動かしてみてください。</p>
 
-    <div class="composer">
-      <label for="src">読みたい文章</label>
-      <textarea id="src" maxlength="10000" placeholder="ニュース、ブログ、日記。日本語の文章なら何でも。"></textarea>
-      <div class="counter"><span id="count">0</span> / 10000</div>
-
-      <div class="presets">
-        <button class="chip" type="button" id="sampleBtn">📄 例文を入れる</button>
-        <button class="chip" type="button" id="newsBtn">📰 記事で試す</button>
-      </div>
-
-      <div class="ratio">
-        <div class="ratio-head">
-          <span>スペイン語の割合</span>
-          <b><span id="ratioVal">15</span>%</b>
+    <div class="demo">
+      <div class="demo-body" id="demoBody"></div>
+      <div class="demo-ctrl">
+        <div class="lbl">
+          <label for="demo" style="margin:0">濃度</label>
+          <b><span id="demoVal">20</span><span style="font-size:13px">%</span></b>
         </div>
-        <input type="range" id="ratio" min="5" max="80" step="5" value="15">
-        <p class="ratio-note">はじめは15%前後がおすすめ。慣れてきたら上げてください。</p>
+        <input type="range" id="demo" min="0" max="80" step="20" value="20" aria-label="デモの濃度">
+        <div class="ticks"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span></div>
       </div>
+    </div>
+    <p class="demo-cap">同じ段落を、濃度だけ変えたものです。</p>
+  </section>
 
-      <button class="go" type="button" id="mixBtn">ミックスする</button>
+  <section class="section">
+    <p class="eyebrow">問題</p>
+    <h2>辞書を引くたびに、読書は止まる。</h2>
+    <p class="q">知らない単語に当たる。調べる。戻ってくる。もう一度その文を頭から読み直す。一段落に三回それをやると、話の筋はもう手元にありません。読み終える前に閉じてしまうのは、根気の問題ではありません。<strong>中断が多すぎる</strong>だけです。</p>
+    <p class="q">かといって、辞書を引かずに読めるところまで易しくすると、今度は読みたいものが残りません。学習用に整えられた文章は、たしかに読めます。ただ、読みたくて読んでいるわけではない。</p>
+    <p>この道具は、教材の側ではなく<strong>濃度の側</strong>を動かします。読みたい文章はそのまま。そこに混ぜるスペイン語の量だけを、その日の自分に合わせる。薬と同じで、量が合っていなければ効きません。</p>
+  </section>
+
+  <section class="section">
+    <p class="eyebrow">仕組み</p>
+    <h2>混ぜると、何が起きるか。</h2>
+
+    <div class="mech">
+      <h3>意味が、文の前に届く。</h3>
+      <p>前後の日本語が話の筋を運んでいるので、スペイン語の文に出会う時点で「ここに何が書いてあるか」はもう分かっています。訳す作業が要りません。</p>
+      <div class="ex">鍋に水を入れて火にかけた。<span class="es">Cuando el agua empezó a hervir, agregué la sal.</span> パスタを入れるのは、そのあとだ。</div>
+      <p class="read">沸いたら塩、という順番は前後から見えている。だから hervir も sal も、辞書を引く前に意味の見当がつく。</p>
+    </div>
+
+    <div class="mech">
+      <h3>英語に使った時間が、そのまま効く。</h3>
+      <p>スペイン語には、英語と同じ語源の単語が大量にあります。ゼロから始めるわけではありません。文脈と英語の知識が、両側から意味を挟み込みます。</p>
+      <div class="ex">駅前の再開発がようやく形になってきた。<span class="es">La construcción terminó en marzo.</span></div>
+      <p class="read">construcción は construction、terminó は terminate、marzo は March。前後の文脈がなくても半分は読める。</p>
+    </div>
+
+    <div class="mech">
+      <h3>断片から組み立てる癖がつく。</h3>
+      <p>日本語の会話は、半分聞き逃しても内容が分かります。周りから埋めているからです。混ぜて読んでいると、その埋める働きがスペイン語でも動き出します。耳で聞くときに効いてくるのはここです。</p>
+      <div class="ex">駅のアナウンスで拾えたのは <span class="es">"mañana … lluvia … por la tarde"</span> の三語だけ。</div>
+      <p class="read">それでも「明日の午後は雨」と分かる。全部聞き取れなくてもいい、と分かることが先に要る。</p>
+    </div>
+
+    <div class="mech">
+      <h3>途中で分からなくなっても、戻れる。</h3>
+      <p>全文スペイン語だと、一度筋を見失うとそこから先が全部無駄になります。混ぜてあれば、次の日本語の文が筋を返してくれます。分からない文を分からないまま通過できるので、最後まで読み切れます。</p>
+      <div class="ex">電車が止まった。<span class="es">No dieron ninguna explicación durante veinte minutos.</span> ホームには人が増え続けた。<span class="es">Finalmente, un anuncio dijo que había un problema técnico.</span></div>
+      <p class="read">一文目のスペイン語が読めなくても、「ホームに人が増えた」で状況が戻る。読書は止まらない。</p>
     </div>
   </section>
 
   <section class="section">
-    <h2>なぜ、100%スペイン語で読むより伸びるのか</h2>
-    <p>
-      スペイン語は、意味を理解できたときに初めて血となり肉となります。
-      100%スペイン語の文章は、理解できない文がひとつ現れた瞬間に、その文章全体が教材として脱落してしまいます。
-      ミックスなら速く・深く理解できるので、読みこなせるスペイン語の総量はむしろ増えます。その量が力になります。
-    </p>
-
-    <div class="point">
-      <h3>文脈が翻訳の代わりになる。</h3>
-      <p>前後の日本語が「そこに入る意味」をほぼ教えてくれるので、スペイン語の文には意味が分かった状態で出会えます。</p>
-      <div class="sample">
-        朝7時に起きました。<span class="es">Desayuné pan y café.</span> 急いでいたので、それだけで家を出た。
-      </div>
-      <p class="arrow">前後から「朝ご飯を食べました」と予測がつくので、活用を考えなくても Desayuné の意味がその場で分かる。</p>
-    </div>
-
-    <div class="point">
-      <h3>英語の知識がそのまま効く。</h3>
-      <p>スペイン語は英語と語源を共有する単語が非常に多い言語です。英語を学んできた時間が、スペイン語では最初から資産になります。</p>
-      <div class="sample">
-        今週は決算の発表がある。<span class="es">Los resultados se anunciarán el viernes.</span>
-      </div>
-      <p class="arrow">resultados が results、anunciar が announce と重なる。文脈と英語の知識が両側から意味を挟み込む。</p>
-    </div>
-
-    <div class="point">
-      <h3>一文つまずいても、脱落しない。</h3>
-      <p>100%スペイン語では、一度理解が途切れるとその先がまるごと無駄になります。ミックスなら途中の日本語が文脈を返してくれるので、最後まで教材であり続けます。</p>
-      <div class="sample">
-        <span class="es">La nueva política se anunció sin previo aviso.</span> 現場は困惑し、質問が殺到した。<span class="es">Aun así, el calendario no cambió.</span>
-      </div>
-      <p class="arrow">難しい文があっても、途中の日本語で流れを取り戻して最後まで読み切れる。</p>
-    </div>
-
-    <div class="point">
-      <h3>聞き取れなくても分かる耳になる。</h3>
-      <p>日本語の会話は、途中が多少聞き取れなくても理解できます。ミックス読みで鍛えた「文脈で補う力」は、スペイン語のリスニングでもそのまま働きます。</p>
-      <div class="sample">
-        聞こえたのは <span class="es">"la reunión … el viernes … el cliente"</span> だけ。
-      </div>
-      <p class="arrow">それでも「クライアントの都合で会議が金曜になった」と分かる。読むだけでリスニングが伸びるのはこのため。</p>
-    </div>
-
-    <div class="point">
-      <h3>負荷を自分で決められる。</h3>
-      <p>疲れた日はスペイン語を少なめに、多読したい日は多めに。参考書を開かなくても、毎日の読みものが教材になります。</p>
-      <div class="sample">
-        <span class="tag">15%</span>朝は雨だった。傘を忘れて駅まで走った。<span class="es">Fue un mal comienzo del día.</span>
-      </div>
-      <div class="sample">
-        <span class="tag">60%</span><span class="es">Llovía por la mañana.</span> <span class="es">Corrí a la estación sin paraguas.</span> <span class="es">Fue un mal comienzo del día.</span>
-      </div>
-      <p class="arrow">その日の集中力に合わせて、割合をいつでも変えられる。</p>
-    </div>
+    <p class="eyebrow">用量</p>
+    <h2>その日の自分に、合う量を。</h2>
+    <p class="q">正解はありません。読み終えられた濃度が、その日の正解です。目安として。</p>
+    <table>
+      <thead><tr><th>濃度</th><th>こんなとき</th></tr></thead>
+      <tbody>
+        <tr><td>5–10%</td><td>疲れている日。長い文章。まず読み切ることを優先する</td></tr>
+        <tr><td>15–25%</td><td>ふだん。日本語の筋を保ったまま、スペイン語に定期的に当たる</td></tr>
+        <tr><td>40–60%</td><td>集中できる日。日本語は要所だけ残り、支えとして働く</td></tr>
+        <tr><td>70–80%</td><td>ほぼスペイン語。日本語は迷子になったときの目印として置く</td></tr>
+      </tbody>
+    </table>
+    <p class="q">上げっぱなしにしないでください。読み切れない濃度を続けるより、読み切れる濃度を毎日続けるほうが、触れる総量は増えます。</p>
   </section>
 
-  <section class="cta">
-    <h2>Chrome拡張版もあります</h2>
-    <p>拡張機能を入れると、いま読んでいるWebページをその場でミックスできます。ニュースもブログも、毎日の読みものがそのまま教材になります。</p>
-    <a href="https://chromewebstore.google.com/detail/mazelingo/bhdngeocokoeblnnlhjibojcadefimpi" target="_blank" rel="noopener">Chromeウェブストアで入手</a>
-  </section>
+  <!-- ================= ツール ================= -->
+  <section class="tool">
+    <p class="eyebrow">つかう</p>
+    <h2>文章を入れる。</h2>
 
+    <div class="panel" id="setPanel" hidden>
+      <h3>設定</h3>
+      <div class="notice">
+        入力した文章は Google の Gemini API に送信されます。<strong>無料枠では、送信内容がモデルの改善に利用される場合があります。</strong>他人の個人情報や、人に見られて困る内容は入れないでください。
+      </div>
+      <div class="field">
+        <label for="key">Gemini APIキー</label>
+        <input type="password" id="key" autocomplete="off" placeholder="AIza…">
+        <p class="hint">この端末のブラウザ内にのみ保存します。送信先はGoogleだけです。<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">AI Studioで取得 ↗</a></p>
+      </div>
+      <div class="field">
+        <label for="model">モデル</label>
+        <div class="row">
+          <select id="model"><option value="">キーを入れて「一覧を取得」</option></select>
+          <button class="chip" type="button" id="loadModels">一覧を取得</button>
+        </div>
+        <p class="hint">無料で使えるモデル名は入れ替わります。flash 系から選んでください。</p>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="variety">スペイン語</label>
+        <select id="variety">
+          <option value="ラテンアメリカで標準的な語法（tú / ustedes を使い、vosotros と voseo は使わない）">ラテンアメリカ標準</option>
+          <option value="スペイン本国の語法（vosotros を用いる）">スペイン本国</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel" id="histPanel" hidden>
+      <h3>履歴 <span class="hint" style="display:inline">この端末にのみ保存</span></h3>
+      <div id="histList"></div>
+      <button class="chip" type="button" id="clearHist" style="margin-top:14px">履歴を消す</button>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="field">
+        <label for="src">読みたい文章</label>
+        <textarea id="src" maxlength="10000" placeholder="ニュース、ブログ、日記。日本語の文章なら何でも。"></textarea>
+        <div class="counter"><span id="count">0</span> / 10000</div>
+      </div>
+      <div class="field">
+        <button class="chip" type="button" id="sampleBtn">例文を入れる</button>
+      </div>
+      <div class="field">
+        <div class="lbl" style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted);margin-bottom:8px">
+          <label for="ratio" style="margin:0">濃度</label>
+          <b style="font-family:var(--serif);font-size:19px;color:var(--ac);font-weight:500"><span id="ratioVal">15</span><span style="font-size:12px">%</span></b>
+        </div>
+        <input type="range" id="ratio" min="5" max="80" step="5" value="15" aria-label="スペイン語にする文の割合">
+        <p class="hint" id="planNote"></p>
+      </div>
+      <button class="go" type="button" id="mixBtn">混ぜる</button>
+      <div class="error" id="err" hidden></div>
+    </div>
+
+    <div id="output" hidden></div>
+  </section>
 </main>
 
 <footer class="wrap">
-  <p>入力された文章は翻訳のためにLLM APIへ送信されます。サーバーには保存しません。</p>
-  <p>© Mazelingo</p>
+  <p>入力した文章は、翻訳のため Google の Gemini API に送信されます。このサイトはサーバーを持たず、文章もAPIキーも当方には一切送信されません。Googleでの取り扱いは同社のプライバシーポリシーによります。</p>
+  <p>APIキー・履歴・設定は、この端末のブラウザ内にのみ保存されます。履歴は「履歴を消す」またはブラウザのデータ削除で消えます。</p>
+  <p>Dosis</p>
 </footer>
 
 <script>
-/* ---------- UI ---------- */
-const src=document.getElementById('src');
-const count=document.getElementById('count');
-const ratio=document.getElementById('ratio');
-const ratioVal=document.getElementById('ratioVal');
-const mixBtn=document.getElementById('mixBtn');
+"use strict";
+const $ = id => document.getElementById(id);
+const LS = {key:'dosis_key', model:'dosis_model', variety:'dosis_variety', hist:'dosis_hist'};
 
-src.addEventListener('input',()=>{count.textContent=src.value.length;});
-ratio.addEventListener('input',()=>{ratioVal.textContent=ratio.value;});
-
-document.getElementById('sampleBtn').addEventListener('click',()=>{
-  src.value=`朝7時に起きた。カーテンを開けると、外はまだ薄暗かった。台所で湯を沸かしながら、昨日読みかけの本のことを考えていた。
-コーヒーを淹れて、パンを一枚焼いた。急いでいたので、それだけで家を出た。
-駅までの道で、近所の犬に吠えられた。いつものことだ。
-電車は少し遅れていて、ホームは人であふれていた。それでも、窓際の席に座れた。`;
-  src.dispatchEvent(new Event('input'));
-});
-
-document.getElementById('newsBtn').addEventListener('click',()=>{
-  // TODO: 既存実装の記事取得処理に差し替え
-  alert('記事取得は既存実装に接続してください。');
-});
-
-/* ---------- 翻訳呼び出し（スタブ） ---------- */
-/* 既存サイトのAPI層が未確認のため、ここは接続点だけ用意しています。
-   mixText() の中身を既存の実装に差し替えてください。 */
-async function mixText(text, ratioPercent){
-  const systemPrompt = buildPrompt(ratioPercent);
-  throw new Error('未接続: 既存のLLM API呼び出しをここに実装してください。');
+/* ========== ヒーローの濃度デモ ========== */
+const DEMO = [
+  {ja:'週末に、近所の市場へ行った。',                     es:'El fin de semana fui al mercado del barrio.'},
+  {ja:'果物の並びがきれいで、しばらく眺めていた。',       es:'La fruta estaba tan bien ordenada que me quedé mirando un rato.'},
+  {ja:'オレンジを三つ買った。',                           es:'Compré tres naranjas.'},
+  {ja:'帰り道で、そのうちの一つを食べた。',               es:'Me comí una de camino a casa.'},
+  {ja:'思っていたより、ずっと甘かった。',                 es:'Estaba mucho más dulce de lo que esperaba.'}
+];
+const DEMO_PICKS = {0:[], 20:[2], 40:[2,4], 60:[1,2,4], 80:[1,2,3,4]};
+function renderDemo(){
+  const v = Number($('demo').value);
+  const picks = new Set(DEMO_PICKS[v] || []);
+  const box = $('demoBody');
+  box.textContent = '';
+  DEMO.forEach((s,i) => {
+    if(picks.has(i)){
+      const sp = document.createElement('span');
+      sp.className = 'es'; sp.textContent = s.es;
+      box.appendChild(sp);
+    }else{
+      box.appendChild(document.createTextNode(s.ja));
+    }
+  });
+  $('demoVal').textContent = v;
 }
+$('demo').addEventListener('input', renderDemo);
+renderDemo();
 
-/* ---------- プロンプト（スペイン語版・要検証） ---------- */
-function buildPrompt(ratioPercent){
-  return `あなたは日本語話者向けのスペイン語学習教材を作るアシスタントです。
-与えられた日本語の文章を文単位に分割し、そのうち約${ratioPercent}%の文だけをスペイン語に置き換えてください。
+/* ========== 設定 ========== */
+$('key').value     = localStorage.getItem(LS.key) || '';
+$('variety').value = localStorage.getItem(LS.variety) || $('variety').options[0].value;
+const savedModel   = localStorage.getItem(LS.model);
+if(savedModel) $('model').innerHTML = `<option value="${savedModel}">${savedModel}</option>`;
 
-制約:
-- スペイン語はラテンアメリカで標準的な語法を用いる（tú / ustedes を使い、vosotros と voseo は使わない）。
-- 置き換える文は、前後の日本語から意味が推測できるものを優先する。前後の文脈が薄い文（固有名詞の羅列、数字だけの文など）は日本語のまま残す。
-- 英語と語源を共有する語（resultado, política, calendario など）を含む文を優先的に選ぶ。日本語話者は英語の知識でこれらを推測できる。
-- 連続する2文以上を続けてスペイン語にしない。日本語の文脈が途切れるため。
-- 文章の最初の文は日本語のまま残す。話題を先に確定させるため。
-- 原文の意味・語調・敬体/常体の対応を保つ。要約や省略をしない。
-- 出力は本文のみ。説明や前置きを付けない。
+$('key').addEventListener('change', e => localStorage.setItem(LS.key, e.target.value.trim()));
+$('variety').addEventListener('change', e => localStorage.setItem(LS.variety, e.target.value));
+$('model').addEventListener('change', e => localStorage.setItem(LS.model, e.target.value));
 
-出力形式:
-置き換えた文を <es data-ja="元の日本語"> でくくって返す。日本語のままの文はそのまま返す。`;
-}
-
-mixBtn.addEventListener('click',async()=>{
-  if(!src.value.trim())return;
-  mixBtn.disabled=true;
-  mixBtn.textContent='ミックス中…';
-  try{
-    await mixText(src.value, Number(ratio.value));
-  }catch(e){
-    alert(e.message);
-  }finally{
-    mixBtn.disabled=false;
-    mixBtn.textContent='ミックスする';
+const togglePanel = (btn, panel) => btn.addEventListener('click', () => {
+  const open = panel.hidden;
+  panel.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  if(open){
+    if(panel === $('histPanel')) renderHist();
+    panel.scrollIntoView && panel.scrollIntoView({behavior:'smooth', block:'center'});
   }
 });
+togglePanel($('setBtn'), $('setPanel'));
+togglePanel($('histBtn'), $('histPanel'));
+
+/* ========== 文の分割（濃度をクライアント側で確定） ========== */
+function splitSentences(text){
+  const out = [];
+  for(const para of text.split(/\n/)){
+    if(!para.trim()){ out.push({t:'\n', br:true}); continue; }
+    const parts = para.match(/[^。．！？!?]*[。．！？!?]+[」』）\)”"]*|[^。．！？!?]+$/g) || [para];
+    parts.forEach(p => out.push({t:p, br:false}));
+    out.push({t:'\n', br:true});
+  }
+  if(out.length && out[out.length-1].br) out.pop();
+  return out;
+}
+function plan(){
+  const n = splitSentences($('src').value).filter(s => !s.br).length;
+  const target = Math.max(n >= 2 ? 1 : 0, Math.round(n * Number($('ratio').value) / 100));
+  return {n, target};
+}
+function updatePlan(){
+  const {n, target} = plan();
+  $('planNote').textContent = n ? `全${n}文のうち${target}文をスペイン語にします。` : '';
+}
+
+/* ========== Gemini API ========== */
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+async function gemini(path, opts = {}){
+  const key = $('key').value.trim();
+  if(!key) throw new Error('APIキーが未設定です。上の「設定」から入力してください。');
+  const res = await fetch(`${API}/${path}`, {
+    ...opts,
+    headers:{'Content-Type':'application/json','x-goog-api-key':key, ...(opts.headers||{})}
+  });
+  if(!res.ok){
+    const body = await res.text();
+    let msg = `APIエラー (${res.status})`;
+    try{ msg = JSON.parse(body).error?.message || msg; }catch{}
+    if(res.status === 429) msg = '無料枠の上限に達しました。しばらく待つか、日をあらためてください。（' + msg + '）';
+    else if(res.status === 400 && /API key/i.test(msg)) msg = 'APIキーが正しくないようです。';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+$('loadModels').addEventListener('click', async () => {
+  showErr('');
+  const btn = $('loadModels'); btn.disabled = true; btn.textContent = '取得中…';
+  try{
+    const data = await gemini('models');
+    const usable = (data.models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map(m => m.name.replace(/^models\//, ''))
+      .filter(n => !/embedding|aqa|imagen|veo|tts/i.test(n));
+    usable.sort((a,b) => (/flash/.test(b) - /flash/.test(a)) || a.localeCompare(b));
+    if(!usable.length) throw new Error('利用できるモデルが見つかりませんでした。');
+    $('model').innerHTML = usable.map(n =>
+      `<option value="${n}"${n === savedModel ? ' selected' : ''}>${n}</option>`).join('');
+    localStorage.setItem(LS.model, $('model').value);
+  }catch(e){ showErr(e.message); }
+  finally{ btn.disabled = false; btn.textContent = '一覧を取得'; }
+});
+
+function buildPrompt(sents, target){
+  const list = sents.map((s,i) => `${i}: ${s}`).join('\n');
+  return `あなたは日本語話者向けのスペイン語学習教材を作る編集者です。
+
+以下は日本語の文章を文単位に分割し、0から番号を振ったものです。
+このうち **ちょうど ${target} 文** を選び、スペイン語に翻訳してください。
+
+【選ぶ基準】（重要な順）
+1. 前後の日本語の文から、意味がおおよそ推測できる文を選ぶ。文脈が翻訳の代わりになることが狙いです。
+2. 英語と語源を共有する語（construcción, información, política, resultado など）を含む文を優先する。読者は英語の知識で推測できます。
+3. 番号0の文（最初の文）は選ばない。話題を先に日本語で確定させるため。
+4. 連続する番号を2つ以上続けて選ばない。日本語の文脈が途切れるため。ただし ${target} 文を確保できない場合はこの条件を緩めてよい。
+5. 固有名詞や数字だけの文、意味の薄い短い相槌は選ばない。
+
+【翻訳の指針】
+- ${$('variety').value}
+- 原文の意味・語調（敬体/常体の対応）を保つ。要約・省略・追記をしない。
+- 学習者が読むため、不自然に難解な語彙は避け、自然で標準的な表現を使う。
+
+【対象の文】
+${list}`;
+}
+
+const SCHEMA = {type:'ARRAY', items:{type:'OBJECT',
+  properties:{i:{type:'INTEGER'}, es:{type:'STRING'}}, required:['i','es']}};
+
+async function mix(){
+  showErr('');
+  const raw = $('src').value.trim();
+  if(!raw){ showErr('文章を入力してください。'); return; }
+  const model = $('model').value;
+  if(!model){ showErr('モデルが未選択です。「設定」から「一覧を取得」してください。'); return; }
+
+  const tokens = splitSentences(raw);
+  const sents  = tokens.filter(t => !t.br).map(t => t.t);
+  const {target} = plan();
+  if(!target){ showErr('文が少なすぎます。2文以上の文章を入れてください。'); return; }
+
+  const btn = $('mixBtn'); btn.disabled = true; btn.textContent = '混ぜています…';
+  try{
+    const data = await gemini(`models/${model}:generateContent`, {
+      method:'POST',
+      body: JSON.stringify({
+        contents:[{parts:[{text: buildPrompt(sents, target)}]}],
+        generationConfig:{temperature:0.4, responseMimeType:'application/json', responseSchema:SCHEMA}
+      })
+    });
+    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+    if(!text){
+      const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason;
+      throw new Error('モデルが応答しませんでした。' + (reason ? `（${reason}）` : ''));
+    }
+    let picks = JSON.parse(text);
+    const seen = new Set();
+    picks = picks.filter(p => {
+      const ok = Number.isInteger(p.i) && p.i > 0 && p.i < sents.length && p.es && !seen.has(p.i);
+      if(ok) seen.add(p.i);
+      return ok;
+    });
+    if(!picks.length) throw new Error('翻訳する文が選ばれませんでした。文章を長くして、もう一度試してください。');
+    saveHist(raw);
+    render(tokens, picks, sents.length);
+  }catch(e){ showErr(e.message); }
+  finally{ btn.disabled = false; btn.textContent = '混ぜる'; }
+}
+
+/* ========== 表示 ========== */
+function render(tokens, picks, total){
+  const map = new Map(picks.map(p => [p.i, p.es]));
+  const out = $('output');
+  out.textContent = '';
+  const head = document.createElement('div');
+  head.className = 'outhead';
+  head.innerHTML = `<span>全${total}文中 ${picks.length}文（濃度 ${Math.round(picks.length/total*100)}%）</span>`
+                 + `<span>クリックで日本語に戻る</span>`;
+  out.appendChild(head);
+
+  let idx = -1;
+  for(const tk of tokens){
+    if(tk.br){ out.appendChild(document.createTextNode('\n')); continue; }
+    idx++;
+    if(map.has(idx)){
+      const sp = document.createElement('span');
+      sp.className = 'es';
+      sp.textContent = map.get(idx);
+      sp.dataset.ja = tk.t;
+      sp.dataset.es = map.get(idx);
+      sp.title = 'クリックで日本語に戻す';
+      sp.addEventListener('click', () => {
+        const on = sp.classList.toggle('revealed');
+        sp.textContent = on ? sp.dataset.ja : sp.dataset.es;
+      });
+      out.appendChild(sp);
+    }else{
+      out.appendChild(document.createTextNode(tk.t));
+    }
+  }
+  out.hidden = false;
+  if(out.scrollIntoView) out.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function showErr(msg){ const e = $('err'); e.textContent = msg; e.hidden = !msg; }
+
+/* ========== 履歴 ========== */
+function saveHist(text){
+  const h = JSON.parse(localStorage.getItem(LS.hist) || '[]');
+  h.unshift({t:text, at:Date.now()});
+  localStorage.setItem(LS.hist, JSON.stringify(h.slice(0,20)));
+}
+function renderHist(){
+  const h = JSON.parse(localStorage.getItem(LS.hist) || '[]');
+  const list = $('histList');
+  list.textContent = '';
+  if(!h.length){ list.innerHTML = '<p class="hint">まだありません。混ぜると、入れた文章がここに残ります。</p>'; return; }
+  h.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'hist-item';
+    d.innerHTML = `<time>${new Date(item.at).toLocaleString('ja-JP')}</time>`;
+    d.append(item.t.slice(0,60) + (item.t.length > 60 ? '…' : ''));
+    d.addEventListener('click', () => {
+      $('src').value = item.t;
+      $('src').dispatchEvent(new Event('input'));
+      $('histPanel').hidden = true;
+      $('histBtn').setAttribute('aria-expanded','false');
+    });
+    list.appendChild(d);
+  });
+}
+$('clearHist').addEventListener('click', () => {
+  if(confirm('履歴をすべて消します。よろしいですか？')){
+    localStorage.removeItem(LS.hist); renderHist();
+  }
+});
+
+/* ========== 入力 ========== */
+$('src').addEventListener('input', () => { $('count').textContent = $('src').value.length; updatePlan(); });
+$('ratio').addEventListener('input', () => { $('ratioVal').textContent = $('ratio').value; updatePlan(); });
+$('mixBtn').addEventListener('click', mix);
+$('sampleBtn').addEventListener('click', () => {
+  $('src').value = `ベランダの鉢が、この夏で三つに増えた。最初はバジルだけだった。水をやる時間が、朝の習慣になっている。
+葉の裏に虫がついていないか、毎朝ひっくり返して見る。見つけたら、その場で取る。薬は使っていない。
+先週、はじめて実がついた。まだ青いままだが、確かに実だった。赤くなるまで、あと二週間はかかるらしい。`;
+  $('src').dispatchEvent(new Event('input'));
+});
+
+if(!$('key').value){ $('setPanel').hidden = false; $('setBtn').setAttribute('aria-expanded','true'); }
+updatePlan();
 </script>
 </body>
 </html>
