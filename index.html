@@ -252,6 +252,11 @@
         </div>
         <p class="hint">一度訳した文をこの端末に保存し、濃度を変えて読み直すときに再利用します。API消費を減らすためです。</p>
       </div>
+      <div class="field" style="margin-bottom:0">
+        <label>APIの呼び出し設定</label>
+        <p class="hint" id="stageStat" style="margin:0"></p>
+        <p class="hint">400エラーが出た場合、対応する設定を自動で探して記憶します。</p>
+      </div>
     </div>
 
     <div class="panel" id="histPanel" hidden>
@@ -492,28 +497,62 @@ ${list}`;
 const SCHEMA = {type:'ARRAY', items:{type:'OBJECT',
   properties:{i:{type:'INTEGER'}, es:{type:'STRING'}}, required:['i','es']}};
 
-/* 内部推論を切る。この用途では選んで訳すだけなので長い思考は不要で、
-   これが遅さの主因になりやすい。未対応モデルは400を返すので、その場合だけ外して再試行する。 */
-let noThink = localStorage.getItem('dosis_nothink') !== '0';
-function genConfig(){
-  const c = {temperature:0.4, responseMimeType:'application/json', responseSchema:SCHEMA};
-  if(noThink) c.thinkingConfig = {thinkingBudget: 0};
+/* 400が返ったら、原因になりやすい設定を段階的に外して再試行する。
+   Gemini は非対応パラメータに対して「Request contains an invalid argument.」という
+   語を含まない汎用メッセージを返すことがあるため、メッセージでの判定はしない。
+   成功した段階は端末に記憶し、次回から最初からその構成で送る。 */
+const STAGES = [
+  {think:true,  schema:true },   // 0: 思考オフ＋構造化出力
+  {think:false, schema:true },   // 1: 構造化出力のみ
+  {think:true,  schema:false},   // 2: 思考オフのみ（JSONはプロンプトで指示）
+  {think:false, schema:false}    // 3: 素の呼び出し
+];
+const STAGE_NAME = ['思考オフ＋構造化出力','構造化出力のみ','思考オフのみ','標準設定'];
+let stage = Number(localStorage.getItem('dosis_stage') || 0);
+
+function genConfig(st){
+  const c = {temperature:0.4};
+  if(STAGES[st].think)  c.thinkingConfig    = {thinkingBudget: 0};
+  if(STAGES[st].schema){c.responseMimeType  = 'application/json'; c.responseSchema = SCHEMA;}
   return c;
 }
+
+/* schema を使わない段階では、JSON形式をプロンプト側で指示する */
+const JSON_INSTRUCTION = `
+
+【出力形式】
+説明や前置き、コードフェンスを付けず、次の形式のJSON配列だけを出力してください。
+[{"i": 番号, "es": "スペイン語訳"}, ...]`;
+
+function parseJson(text){
+  const t = text.replace(/^```(?:json)?/i,'').replace(/```\s*$/,'').trim();
+  const m = t.match(/\[[\s\S]*\]/);            // 前後に文が混じっても配列だけ拾う
+  return JSON.parse(m ? m[0] : t);
+}
+
 async function generate(model, prompt){
-  const body = () => JSON.stringify({
-    contents:[{parts:[{text: prompt}]}], generationConfig: genConfig()
-  });
-  try{
-    return await gemini(`models/${model}:generateContent`, {method:'POST', body: body()});
-  }catch(e){
-    if(noThink && /thinking|Unknown name|Invalid JSON payload|not supported/i.test(e.message)){
-      noThink = false;                       // このモデルは非対応。外して一度だけ再試行
-      localStorage.setItem('dosis_nothink','0');
-      return await gemini(`models/${model}:generateContent`, {method:'POST', body: body()});
+  let lastErr = null;
+  for(let st = stage; st < STAGES.length; st++){
+    const body = JSON.stringify({
+      contents:[{parts:[{text: prompt + (STAGES[st].schema ? '' : JSON_INSTRUCTION)}]}],
+      generationConfig: genConfig(st)
+    });
+    try{
+      const data = await gemini(`models/${model}:generateContent`, {method:'POST', body});
+      if(st !== stage){ stage = st; localStorage.setItem('dosis_stage', String(st)); }
+      updateStageStat();
+      return data;
+    }catch(e){
+      lastErr = e;
+      if(!/^APIエラー \(400\)|invalid argument|Unknown name|not supported|Invalid JSON payload/i.test(e.message)) throw e;
     }
-    throw e;
   }
+  throw new Error((lastErr ? lastErr.message : '不明なエラー')
+    + '\nすべての設定で失敗しました。設定からモデルを変えて試してください（flash 系を推奨）。');
+}
+function updateStageStat(){
+  const el = $('stageStat');
+  if(el) el.textContent = STAGE_NAME[stage] + (stage === 0 ? '' : '（このモデルは一部設定に非対応）');
 }
 
 async function mix(){
@@ -557,7 +596,7 @@ async function mix(){
       throw new Error('モデルが応答しませんでした。' + (reason ? `（${reason}）` : ''));
     }
     const banSet = new Set(banned), seen = new Set();
-    const fresh = JSON.parse(text).filter(p => {
+    const fresh = parseJson(text).filter(p => {
       const ok = Number.isInteger(p.i) && p.i > 0 && p.i < sents.length
                  && p.es && !banSet.has(p.i) && !seen.has(p.i);
       if(ok) seen.add(p.i);
@@ -660,6 +699,7 @@ $('sampleBtn').addEventListener('click', () => {
 if(!$('key').value){ $('setPanel').hidden = false; $('setBtn').setAttribute('aria-expanded','true'); }
 updatePlan();
 updateCacheStat();
+updateStageStat();
 </script>
 </body>
 </html>
