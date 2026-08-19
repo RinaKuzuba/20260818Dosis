@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 通信先を Google の Generative Language API だけに限定する。
+     万一このファイルに欠陥が入っても、APIキーを別の宛先へ送れない。
+     単一HTMLなので inline の script / style は許可が必要。 -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'unsafe-inline';
+  style-src 'unsafe-inline';
+  connect-src https://generativelanguage.googleapis.com;
+  img-src data:;
+  base-uri 'none';
+  form-action 'none';">
 <title>Dosis — 読める濃度で、スペイン語を読む</title>
 <meta name="description" content="日本語の文章に、スペイン語を少しだけ混ぜて読む道具。濃度は自分で決められます。辞書を引いて読書が止まる、という問題を濃度で解きます。">
 <style>
@@ -256,9 +267,12 @@
         <label>APIの呼び出し設定</label>
         <div class="row" style="align-items:center">
           <p class="hint" id="stageStat" style="margin:0;flex:1"></p>
+          <select id="testRuns" style="width:auto;flex:0 0 auto;padding:7px 8px;font-size:13px">
+            <option value="1" selected>1回</option><option value="2">2回</option><option value="3">3回</option>
+          </select>
           <button class="chip" type="button" id="testBtn">接続テスト</button>
         </div>
-        <p class="hint">400エラーが出た場合、対応する設定を自動で探して記憶します。うまくいかないときは接続テストで、どの設定が通るかを確認できます（APIを最大4回使います）。</p>
+        <p class="hint">400エラーが出た場合、対応する設定を自動で探して記憶します。接続テストは各段階を指定回数ずつ計測し、最も速い設定を採用します。回数×4回のAPIを消費するので、無料枠を使い切らないよう注意してください。</p>
         <pre id="testOut" class="hint" style="white-space:pre-wrap;margin:8px 0 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7"></pre>
       </div>
     </div>
@@ -297,7 +311,7 @@
 <footer class="wrap">
   <p>入力した文章は、翻訳のため Google の Gemini API に送信されます。このサイトはサーバーを持たず、文章もAPIキーも当方には一切送信されません。Googleでの取り扱いは同社のプライバシーポリシーによります。</p>
   <p>APIキー・履歴・設定は、この端末のブラウザ内にのみ保存されます。履歴は「履歴を消す」またはブラウザのデータ削除で消えます。</p>
-  <p>Dosis <span id="ver">v0.4</span></p>
+  <p>Dosis <span id="ver">v0.6</span></p>
 </footer>
 
 <script>
@@ -339,7 +353,17 @@ renderDemo();
 $('key').value     = localStorage.getItem(LS.key) || '';
 $('variety').value = localStorage.getItem(LS.variety) || $('variety').options[0].value;
 const savedModel   = localStorage.getItem(LS.model);
-if(savedModel) $('model').innerHTML = `<option value="${savedModel}">${savedModel}</option>`;
+function setModelOptions(names, selected){
+  const sel = $('model');
+  sel.textContent = '';
+  names.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    if(n === selected) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+if(savedModel) setModelOptions([savedModel], savedModel);
 
 $('key').addEventListener('change', e => localStorage.setItem(LS.key, e.target.value.trim()));
 $('variety').addEventListener('change', e => localStorage.setItem(LS.variety, e.target.value));
@@ -465,8 +489,7 @@ $('loadModels').addEventListener('click', async () => {
       .filter(n => !/embedding|aqa|imagen|veo|tts/i.test(n));
     usable.sort((a,b) => (/flash/.test(b) - /flash/.test(a)) || a.localeCompare(b));
     if(!usable.length) throw new Error('利用できるモデルが見つかりませんでした。');
-    $('model').innerHTML = usable.map(n =>
-      `<option value="${n}"${n === savedModel ? ' selected' : ''}>${n}</option>`).join('');
+    setModelOptions(usable, savedModel);
     localStorage.setItem(LS.model, $('model').value);
   }catch(e){ showErr(e.message); }
   finally{ btn.disabled = false; btn.textContent = '一覧を取得'; }
@@ -561,37 +584,56 @@ async function generate(model, prompt){
   throw new Error((lastErr ? lastErr.message : '不明なエラー')
     + '\nすべての設定で失敗しました。設定からモデルを変えて試してください（flash 系を推奨）。');
 }
+/* 接続テスト：各段階を複数回叩き、中央値の最も速い段階を採用する。
+   無料枠は待ち時間の変動が大きく、1回の計測では設定の効果と区別できないため。 */
 $('testBtn').addEventListener('click', async () => {
   const model = $('model').value;
   const out = $('testOut');
   if(!model){ out.textContent = 'モデルが未選択です。'; return; }
+  const runs = Number($('testRuns').value);
   const btn = $('testBtn'); btn.disabled = true;
-  out.textContent = `モデル: ${model}\n思考パラメータ: ${JSON.stringify(thinkCfg(model))}\n`;
+  out.textContent = `モデル: ${model}\n思考パラメータ: ${JSON.stringify(thinkCfg(model))}\n`
+                  + `各段階 ${runs}回ずつ（計 最大${runs*4}回のAPI呼び出し）\n\n`;
   const prompt = '次のJSON配列だけを出力してください: [{"i":1,"es":"Hola."}]';
-  let firstOk = -1;
+  const result = [];
   for(let st = 0; st < STAGES.length; st++){
-    const t0 = Date.now();
-    try{
-      await gemini(`models/${model}:generateContent`, {method:'POST', body: JSON.stringify({
-        contents:[{parts:[{text: prompt}]}], generationConfig: genConfig(st, model)})});
-      out.textContent += `✓ 段階${st} ${STAGE_NAME[st]} … ${((Date.now()-t0)/1000).toFixed(1)}秒\n`;
-      if(firstOk < 0) firstOk = st;
-    }catch(e){
-      out.textContent += `✗ 段階${st} ${STAGE_NAME[st]} … ${e.message.split('\n')[0]}\n`;
+    const times = []; let fail = '';
+    for(let r = 0; r < runs; r++){
+      const t0 = Date.now();
+      try{
+        await gemini(`models/${model}:generateContent`, {method:'POST', body: JSON.stringify({
+          contents:[{parts:[{text: prompt}]}], generationConfig: genConfig(st, model)})});
+        times.push(Date.now() - t0);
+      }catch(e){ fail = e.message.split('\n')[0]; break; }
+      btn.textContent = `測定中 ${st+1}/4 (${r+1}/${runs})`;
+    }
+    if(fail){
+      out.textContent += `✗ 段階${st} ${STAGE_NAME[st]} … ${fail}\n`;
+      result.push(null);
+    }else{
+      const sorted = [...times].sort((x,y) => x - y);
+      const med = sorted[Math.floor(sorted.length/2)];
+      result.push({st, med});
+      const all = times.map(t => (t/1000).toFixed(1)).join(', ');
+      out.textContent += `✓ 段階${st} ${STAGE_NAME[st]} … 中央値 ${(med/1000).toFixed(1)}秒`
+                       + (runs > 1 ? `（${all}）` : '') + `\n`;
     }
   }
-  if(firstOk >= 0){
-    stage = firstOk; localStorage.setItem('dosis_stage', String(firstOk));
-    out.textContent += `→ 段階${firstOk}を使います。`;
+  const ok = result.filter(Boolean).sort((a,b) => a.med - b.med);
+  if(ok.length){
+    stage = ok[0].st; localStorage.setItem('dosis_stage', String(stage));
+    out.textContent += `\n→ 最速の段階${stage}（${STAGE_NAME[stage]}）を採用しました。`;
+    if(ok.length > 1 && ok[ok.length-1].med / ok[0].med < 1.5)
+      out.textContent += `\n  ただし段階間の差が小さく、計測のばらつきの範囲かもしれません。`;
     updateStageStat();
   }else{
-    out.textContent += '→ すべて失敗。モデルを変えて再テストしてください。';
+    out.textContent += '\n→ すべて失敗。モデルを変えて再テストしてください。';
   }
-  btn.disabled = false;
+  btn.disabled = false; btn.textContent = '接続テスト';
 });
 function updateStageStat(){
   const el = $('stageStat');
-  if(el) el.textContent = STAGE_NAME[stage] + (stage === 0 ? '' : '（このモデルは一部設定に非対応）');
+  if(el) el.textContent = STAGE_NAME[stage];
 }
 
 async function mix(){
@@ -634,8 +676,17 @@ async function mix(){
       const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason;
       throw new Error('モデルが応答しませんでした。' + (reason ? `（${reason}）` : ''));
     }
+    let parsed;
+    try{ parsed = parseJson(text); }
+    catch(pe){
+      if(!STAGES[stage].schema){          // 構造化出力なしの段階でだけ起きうる
+        stage = 1; localStorage.setItem('dosis_stage','1'); updateStageStat();
+        throw new Error('応答をJSONとして読めませんでした。構造化出力ありの設定に切り替えたので、もう一度お試しください。');
+      }
+      throw new Error('応答をJSONとして読めませんでした。もう一度お試しください。');
+    }
     const banSet = new Set(banned), seen = new Set();
-    const fresh = parseJson(text).filter(p => {
+    const fresh = parsed.filter(p => {
       const ok = Number.isInteger(p.i) && p.i > 0 && p.i < sents.length
                  && p.es && !banSet.has(p.i) && !seen.has(p.i);
       if(ok) seen.add(p.i);
@@ -664,8 +715,11 @@ function render(tokens, picks, total, freshCount, ms){
   const src = freshCount === 0 ? '保存済みの訳を再利用・API未使用'
             : reused === 0    ? `${secs}${freshCount}文を新規に翻訳`
             : `${secs}${freshCount}文を新規に翻訳・${reused}文は再利用`;
-  head.innerHTML = `<span>全${total}文中 ${picks.length}文（濃度 ${Math.round(picks.length/total*100)}%）</span>`
-                 + `<span>${src}／クリックで日本語に戻る</span>`;
+  const s1 = document.createElement('span');
+  s1.textContent = `全${total}文中 ${picks.length}文（濃度 ${Math.round(picks.length/total*100)}%）`;
+  const s2 = document.createElement('span');
+  s2.textContent = `${src}／クリックで日本語に戻る`;
+  head.append(s1, s2);
   out.appendChild(head);
 
   let idx = -1;
@@ -703,11 +757,18 @@ function renderHist(){
   const h = JSON.parse(localStorage.getItem(LS.hist) || '[]');
   const list = $('histList');
   list.textContent = '';
-  if(!h.length){ list.innerHTML = '<p class="hint">まだありません。混ぜると、入れた文章がここに残ります。</p>'; return; }
+  if(!h.length){
+    const p = document.createElement('p');
+    p.className = 'hint';
+    p.textContent = 'まだありません。混ぜると、入れた文章がここに残ります。';
+    list.appendChild(p); return;
+  }
   h.forEach(item => {
     const d = document.createElement('div');
     d.className = 'hist-item';
-    d.innerHTML = `<time>${new Date(item.at).toLocaleString('ja-JP')}</time>`;
+    const tm = document.createElement('time');
+    tm.textContent = new Date(item.at).toLocaleString('ja-JP');
+    d.appendChild(tm);
     d.append(item.t.slice(0,60) + (item.t.length > 60 ? '…' : ''));
     d.addEventListener('click', () => {
       $('src').value = item.t;
